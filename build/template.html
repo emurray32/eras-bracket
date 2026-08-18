@@ -124,7 +124,18 @@ input[type=text],select{
 .sechead h2{font-family:var(--font-display); font-size:26px}
 
 /* ============ bracket ============ */
-.regionbar{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px}
+.choosers{display:flex; flex-direction:column; gap:8px; margin-bottom:18px}
+.barrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.barrow>.lbl{width:38px; flex:none}
+.regionbar{display:flex; gap:6px; flex-wrap:wrap}
+
+.playin{border:1px solid var(--rule); border-radius:3px; background:var(--surface-2);
+  padding:12px 14px 14px; margin-bottom:20px}
+.playin-hd{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+.playin h3{font-family:var(--font-label); text-transform:uppercase; letter-spacing:.18em;
+  font-size:10.5px; color:var(--ink-2)}
+.playin .pg{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:8px; margin-top:11px}
+.playin .cell{width:auto}
 .rchip{padding:5px 11px; border:1px solid var(--rule); border-radius:2px;
   font-family:var(--font-label); text-transform:uppercase; letter-spacing:.11em; font-size:10.5px; color:var(--ink-2)}
 .rchip[aria-pressed="true"]{background:var(--ink); color:var(--bg); border-color:var(--ink)}
@@ -163,6 +174,9 @@ input[type=text],select{
   transition:background .18s ease, opacity .18s ease;
 }
 .slot+.slot{border-top:1px solid var(--rule)}
+.sheet.big{--gap:7px}
+.sheet.big .slot{padding-top:3px; padding-bottom:3px}
+.sheet.big .slot .nm{font-size:11.5px}
 .slot .sd{font-family:var(--font-mono); font-size:9.5px; color:var(--ink-3); width:20px; text-align:center; flex:none}
 .slot .nm{flex:1; font-size:12.3px; line-height:1.25; letter-spacing:-.005em; overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap}
@@ -298,13 +312,13 @@ footer a{color:var(--ink-2)}
     </div>
     <h1>The Eras <em>Bracket</em></h1>
     <p class="deck">Every song Taylor Swift has released, ranked one through <span id="n1"></span> by
-      lifetime Spotify streams. The top 64 are seeded into a March&nbsp;Madness field. Pick every
-      matchup, crown a champion, then argue about it.</p>
+      lifetime Spotify streams, then seeded into a March&nbsp;Madness field. Play the whole
+      discography or cut it down to the top 64. Pick every matchup, crown a champion, then argue about it.</p>
     <div class="facts">
       <div class="fact"><span class="lbl">Songs ranked</span><b class="num" id="f1"></b></div>
       <div class="fact"><span class="lbl">Total streams</span><b class="num" id="f2"></b></div>
       <div class="fact"><span class="lbl">Eras</span><b class="num" id="f3"></b></div>
-      <div class="fact"><span class="lbl">Matchups to pick</span><b class="num">63</b></div>
+      <div class="fact"><span class="lbl">Matchups to pick</span><b class="num" id="f4">63</b></div>
     </div>
   </div>
 </header>
@@ -331,7 +345,11 @@ footer a{color:var(--ink-2)}
 
 <main>
   <section class="view on" id="v-bracket">
-    <div class="regionbar" id="regionbar"></div>
+    <div class="choosers">
+      <div class="barrow"><span class="lbl">Field</span><div class="regionbar" id="fieldbar"></div></div>
+      <div class="barrow"><span class="lbl">View</span><div class="regionbar" id="regionbar"></div></div>
+    </div>
+    <div id="playinwrap"></div>
     <div class="sheetwrap" id="sheetwrap"><div class="sheet" id="sheet"></div></div>
   </section>
 
@@ -406,29 +424,78 @@ f2.textContent = (DATA.total/1e9).toFixed(1) + 'B';
 f3.textContent = ERAS.length;
 
 /* ---------- bracket model ---------- */
-BR.forEach(reg => reg.games.forEach(g => g.forEach((x,k) => {
-  const s = byId.get(x.r); s.seed = x.seed; g[k] = s;          // one object per song
-})));
-const R0 = [];                                   // 32 opening matchups
-BR.forEach(reg => reg.games.forEach(g => R0.push(g)));
+/* The field is built here rather than baked into the data, so the size can be
+   switched without a rebuild. Sizes must be powers of two; "all" reaches 271 by
+   putting the bottom 30 songs into a play-in round for the last 15 places, which
+   is how the real tournament fits 68 teams into a 64-team bracket. */
+const FIELDS = [
+  {k:'64',  label:'64',        main:64,  playin:0},
+  {k:'128', label:'128',       main:128, playin:0},
+  {k:'271', label:'All ' + DATA.count, main:256, playin:15}
+];
+let F, SPR, ORDER, ROUNDS, R_FINAL, SEMI, FINAL, TOTAL, seedSlot;
 let picks = {};
 
+function seedOrder(n){                       // 1 v n, 2 v n-1 ... folded into bracket order
+  let o = [1, 2];
+  while (o.length < n){ const m = o.length*2 + 1; o = o.flatMap(s => [s, m-s]); }
+  return o;
+}
+function playinPair(g){ return [S[F.auto + g], S[F.used - 1 - g]]; }
+
+function buildField(key){
+  const spec = FIELDS.find(x => x.k === key) || FIELDS[0];
+  F = Object.assign({}, spec);
+  F.auto = F.main - F.playin;                // songs holding a place outright
+  F.used = F.auto + F.playin * 2;            // songs involved in total
+  SPR    = F.main / 4;                       // seeds per quadrant
+  ORDER  = seedOrder(SPR);
+  ROUNDS = Math.log2(F.main);
+  R_FINAL = Math.log2(SPR) - 1;              // quadrant final
+  SEMI = R_FINAL + 1; FINAL = ROUNDS - 1;
+  TOTAL = (F.main - 1) + F.playin;
+
+  S.forEach(s => { s.seed = 0; });
+  seedSlot = [{}, {}, {}, {}];
+  for (let i = 0; i < F.main; i++){
+    const band = i >> 2, j = i & 3;
+    const ord = band % 2 === 0 ? [0,1,2,3] : [3,2,1,0];   // snake, so each quadrant gets one of every band
+    const sl = {idx:i, region:ord[j], seed:band + 1,
+                song: i < F.auto ? S[i] : null,
+                playin: i < F.auto ? -1 : i - F.auto};
+    if (sl.song) sl.song.seed = sl.seed;
+    else playinPair(sl.playin).forEach(x => { x.seed = sl.seed; });
+    seedSlot[sl.region][sl.seed] = sl;
+  }
+}
+function occupant(sl){ return sl.song || winner(-1, sl.playin); }
+
 function entrants(r, i){
-  if (r === 0) return R0[i];
-  return [winner(r-1, i*2), winner(r-1, i*2+1)];
+  if (r === -1) return playinPair(i);
+  if (r === 0){
+    const per = SPR / 2, reg = Math.floor(i / per), g = i % per;
+    return [occupant(seedSlot[reg][ORDER[2*g]]), occupant(seedSlot[reg][ORDER[2*g + 1]])];
+  }
+  return [winner(r-1, i*2), winner(r-1, i*2 + 1)];
 }
 function winner(r, i){
-  const id = picks[r+':'+i];
+  const id = picks[r + ':' + i];
   if (id == null) return null;
   const e = entrants(r, i);
   return (e[0] && e[0].r === id) || (e[1] && e[1].r === id) ? byId.get(id) : null;
 }
+function gamesIn(r){ return r === -1 ? F.playin : F.main >> (r + 1); }
 function madeCount(){
   let n = 0;
-  for (let r = 0; r < 6; r++) for (let i = 0; i < (32 >> r); i++) if (winner(r,i)) n++;
+  for (let r = -1; r <= FINAL; r++) for (let i = 0; i < gamesIn(r); i++) if (winner(r, i)) n++;
   return n;
 }
-const ROUND_NAME = ['Round of 64','Round of 32','Sweet 16','Elite 8','Final Four','The Final'];
+function roundName(r){
+  if (r === -1) return 'Play-in';
+  const left = F.main >> r;
+  return left === 2 ? 'The Final' : left === 4 ? 'Final Four'
+       : left === 8 ? 'Elite 8'   : left === 16 ? 'Sweet 16' : 'Round of ' + left;
+}
 
 /* ---------- bracket rendering ---------- */
 function slotEl(song, r, i, live){
@@ -437,20 +504,20 @@ function slotEl(song, r, i, live){
   if (!song){
     b.classList.add('empty'); b.disabled = true;
     const nm = document.createElement('span'); nm.className = 'nm';
-    nm.textContent = r ? 'Winner, ' + ROUND_NAME[r-1] : '';
+    nm.textContent = r === 0 ? 'Play-in winner' : 'Winner, ' + roundName(r - 1);
     b.append(Object.assign(document.createElement('span'), {className:'sd'}), nm);
     return b;
   }
   b.style.setProperty('--era', song.c);
-  const w = winner(r,i);
+  const w = winner(r, i);
   if (w) b.classList.add(w.r === song.r ? 'win' : 'lose');
   b.innerHTML = `<span class="sd">${song.seed || ''}</span>` +
-                `<span class="nm" title="${esc(song.t)} &middot; ${esc(song.a)}">${esc(song.t)}</span>` +
+                `<span class="nm" title="${esc(song.t)} &middot; ${esc(song.a)} &middot; #${song.r} overall">${esc(song.t)}</span>` +
                 `<span class="st">${fmt(song.s)}</span>`;
   if (live){
     b.addEventListener('click', () => {
-      picks[r+':'+i] = (w && w.r === song.r) ? undefined : song.r;
-      if (picks[r+':'+i] === undefined) delete picks[r+':'+i];
+      const key = r + ':' + i;
+      if (w && w.r === song.r) delete picks[key]; else picks[key] = song.r;
       save(); draw();
     });
   } else { b.disabled = true; }
@@ -473,84 +540,90 @@ function nodeEl(r, i, minRound){
     n.classList.add('has-kids');
     const k = document.createElement('div'); k.className = 'kids';
     k.appendChild(nodeEl(r-1, i*2, minRound));
-    k.appendChild(nodeEl(r-1, i*2+1, minRound));
+    k.appendChild(nodeEl(r-1, i*2 + 1, minRound));
     n.appendChild(k);
   }
   n.appendChild(cellEl(r, i));
   return n;
 }
+function regionBox(idx, side){
+  const box = document.createElement('div');
+  const t = document.createElement('div');
+  t.className = 'regtitle'; t.textContent = REGION_NAMES[idx];
+  if (side === 'r') t.style.flexDirection = 'row-reverse';
+  const tree = document.createElement('div'); tree.className = 'side-' + side;
+  tree.appendChild(nodeEl(R_FINAL, idx, 0));
+  box.append(t, tree);
+  return box;
+}
 function halfEl(rootIdx, side){
   const h = document.createElement('div');
   h.className = 'half side-' + side;
-  [rootIdx*2, rootIdx*2+1].forEach(regionIdx => {
-    const box = document.createElement('div');
-    const t = document.createElement('div');
-    t.className = 'regtitle'; t.textContent = BR[regionIdx].name;
-    if (side === 'r') t.style.flexDirection = 'row-reverse';
-    box.appendChild(t);
-    const tree = document.createElement('div');
-    tree.className = 'side-' + side;
-    tree.appendChild(nodeEl(3, regionIdx, 0));
-    box.appendChild(tree);
-    h.appendChild(box);
-  });
+  [rootIdx*2, rootIdx*2 + 1].forEach(i => h.appendChild(regionBox(i, side)));
   return h;
 }
 function centreEl(){
   const c = document.createElement('div');
   c.className = 'centre';
-  const sl = document.createElement('div'); sl.className = 'side-l';
-  sl.appendChild(cellEl(4, 0));
-  const sr = document.createElement('div'); sr.className = 'side-l';
-  sr.appendChild(cellEl(4, 1));
+  const sl = document.createElement('div'); sl.className = 'side-l'; sl.appendChild(cellEl(SEMI, 0));
+  const sr = document.createElement('div'); sr.className = 'side-l'; sr.appendChild(cellEl(SEMI, 1));
 
-  const champ = winner(5, 0);
+  const champ = winner(FINAL, 0);
   const m = document.createElement('div');
   m.className = 'medal' + (champ ? ' set' : '');
   if (champ) m.style.setProperty('--era', champ.c);
   m.innerHTML = `<div class="crown">Champion</div>
     <div class="ttl">${champ ? esc(champ.t) : 'Nobody yet'}</div>
-    <div class="sub">${champ ? esc(champ.a) + ' &middot; ' + champ.y + ' &middot; #' + champ.r + ' overall &middot; ' + champ.s.toLocaleString() + ' streams' : 'Pick all 63 matchups'}</div>`;
+    <div class="sub">${champ
+      ? esc(champ.a) + ' &middot; ' + champ.y + ' &middot; #' + champ.r + ' overall &middot; ' + champ.s.toLocaleString() + ' streams'
+      : 'Pick all ' + TOTAL + ' matchups'}</div>`;
 
   const fr = document.createElement('div'); fr.className = 'finalrail'; fr.innerHTML = railHTML;
-
   const lbl = document.createElement('div'); lbl.className = 'lbl'; lbl.textContent = 'Final Four';
-  c.append(lbl, sl, cellEl(5, 0), sr, fr, m);
+  c.append(lbl, sl, cellEl(FINAL, 0), sr, fr, m);
   return c;
+}
+function drawPlayin(){
+  const host = document.getElementById('playinwrap');
+  host.innerHTML = '';
+  if (!F.playin) return;
+  const done = Array.from({length:F.playin}, (_, g) => winner(-1, g)).filter(Boolean).length;
+  const box = document.createElement('div');
+  box.className = 'playin';
+  box.innerHTML = `<div class="playin-hd"><h3>Play-in round</h3>
+    <span class="lbl">${done} of ${F.playin} decided &middot; winners take the last ${F.playin} places</span></div>`;
+  const grid = document.createElement('div'); grid.className = 'pg';
+  for (let g = 0; g < F.playin; g++) grid.appendChild(cellEl(-1, g));
+  box.appendChild(grid);
+  host.appendChild(box);
 }
 
 let regionView = 'all';
 function drawSheet(){
   sheet.innerHTML = '';
   sheet.style.zoom = '';
+  sheet.className = 'sheet' + (F.main > 64 ? ' big' : '');
   if (regionView === 'all'){
-    sheet.appendChild(halfEl(0, 'l'));
-    sheet.appendChild(centreEl());
-    sheet.appendChild(halfEl(1, 'r'));
+    sheet.append(halfEl(0, 'l'), centreEl(), halfEl(1, 'r'));
   } else if (regionView === 'final'){
     sheet.appendChild(centreEl());
   } else {
-    const idx = +regionView;
-    const box = document.createElement('div');
-    const t = document.createElement('div'); t.className = 'regtitle'; t.textContent = BR[idx].name;
-    const tree = document.createElement('div'); tree.className = 'side-l';
-    tree.appendChild(nodeEl(3, idx, 0));
-    box.append(t, tree);
-    sheet.appendChild(box);
+    sheet.appendChild(regionBox(+regionView, 'l'));
   }
   fit();
 }
-const MIN_ZOOM = 0.7;                         // below this the song titles stop being readable
+function minZoom(){ return regionView === 'all' && F.main > 64 ? 0.4 : 0.7; }
 function fit(){
   const avail = sheetwrap.clientWidth - 4;
   if (avail < 60) return;                     // not laid out yet (hidden tab, print, first paint)
+  const floor = minZoom();
   sheet.style.zoom = 1;                       // reset, then read the natural width
   const natural = sheet.offsetWidth;
-  let k = natural > avail ? Math.max(avail / natural, MIN_ZOOM) : 1;
+  let k = natural > avail ? Math.max(avail / natural, floor) : 1;
   sheet.style.zoom = k;
   // browsers disagree on whether zoom is baked into measurements, so correct against what actually rendered
   const shown = sheet.getBoundingClientRect().width;
-  if (shown > avail && k > MIN_ZOOM) sheet.style.zoom = Math.max(k * avail / shown, MIN_ZOOM);
+  if (shown > avail && k > floor) sheet.style.zoom = Math.max(k * avail / shown, floor);
 }
 addEventListener('resize', fit);
 if (window.ResizeObserver) new ResizeObserver(() => fit()).observe(sheetwrap);
@@ -561,97 +634,129 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) fit(
 
 function drawProgress(){
   const n = madeCount();
-  ptxt.textContent = n + ' / 63';
-  pbar.style.width = (n/63*100) + '%';
+  ptxt.textContent = n + ' / ' + TOTAL;
+  pbar.style.width = (n / TOTAL * 100) + '%';
+  document.getElementById('f4').textContent = TOTAL;
 }
 let lastChamp = null;
 function draw(){
-  drawSheet(); drawProgress();
-  const c = winner(5,0);
+  drawPlayin(); drawSheet(); drawProgress();
+  const c = winner(FINAL, 0);
   if (c && (!lastChamp || lastChamp.r !== c.r)) burst(c.c);
   lastChamp = c;
 }
 
-/* ---------- region chooser ---------- */
-const regionOpts = [{k:'all', n:'Full bracket'}]
-  .concat(BR.map((b,i) => ({k:String(i), n:b.name})))
-  .concat([{k:'final', n:'Final Four'}]);
-regionbar.innerHTML = regionOpts.map(o =>
-  `<button class="rchip" data-r="${o.k}" aria-pressed="${o.k==='all'}">${o.n}</button>`).join('');
+/* ---------- field and view choosers ---------- */
+const REGION_NAMES = ['GLITTER GEL PEN', 'FOUNTAIN PEN', 'QUILL PEN', 'THE VAULT'];
+let fieldKey = '271';
+
+fieldbar.innerHTML = FIELDS.map(f =>
+  `<button class="rchip" data-f="${f.k}">${f.label}</button>`).join('');
+regionbar.innerHTML = [{k:'all', n:'Full bracket'}]
+  .concat(REGION_NAMES.map((n, i) => ({k:String(i), n})))
+  .concat([{k:'final', n:'Final Four'}])
+  .map(o => `<button class="rchip" data-r="${o.k}">${o.n}</button>`).join('');
+
+function markChips(){
+  [...fieldbar.children].forEach(c => c.setAttribute('aria-pressed', c.dataset.f === fieldKey));
+  [...regionbar.children].forEach(c => c.setAttribute('aria-pressed', c.dataset.r === regionView));
+}
+fieldbar.addEventListener('click', e => {
+  const b = e.target.closest('.rchip'); if (!b || b.dataset.f === fieldKey) return;
+  fieldKey = b.dataset.f;
+  buildField(fieldKey);
+  picks = loadPicks();
+  // the whole sheet is unreadable at 256, so land people in a quadrant
+  if (F.main > 64 && regionView === 'all') regionView = '0';
+  markChips(); saveField(); lastChamp = winner(FINAL, 0); draw();
+});
 regionbar.addEventListener('click', e => {
   const b = e.target.closest('.rchip'); if (!b) return;
-  regionView = b.dataset.r;
-  [...regionbar.children].forEach(c => c.setAttribute('aria-pressed', c === b));
-  drawSheet();
+  regionView = b.dataset.r; markChips(); drawSheet();
 });
-if (matchMedia('(max-width:820px)').matches){
-  regionView = '0';
-  [...regionbar.children].forEach(c => c.setAttribute('aria-pressed', c.dataset.r === '0'));
-}
 
 /* ---------- saving ---------- */
-const KEY = 'erasBracket.v1';
-function store(){ try { return JSON.parse(localStorage.getItem(KEY)) || {names:{}, cur:''}; }
-  catch(e){ return {names:{}, cur:''}; } }
-function save(){
+const KEY = 'erasBracket.v2';
+function store(){
+  try { return JSON.parse(localStorage.getItem(KEY)) || {names:{}, cur:'', field:''}; }
+  catch(e){ return {names:{}, cur:'', field:''}; }
+}
+function writeStore(st){ try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e){} }
+function currentName(){ return who.value.trim() || 'my bracket'; }
+function loadPicks(){
   const st = store();
-  const nm = (who.value.trim() || 'my bracket');
-  st.names[nm] = picks; st.cur = nm;
-  try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e){}
+  return (st.names[st.cur] || {})[fieldKey] || {};
+}
+function saveField(){ const st = store(); st.field = fieldKey; writeStore(st); }
+function save(){
+  const st = store(), nm = currentName();
+  st.names[nm] = st.names[nm] || {};
+  st.names[nm][fieldKey] = picks;
+  st.cur = nm; st.field = fieldKey;
+  writeStore(st);
   refreshSaved();
 }
 function refreshSaved(){
   const st = store(), keys = Object.keys(st.names);
   saved.innerHTML = keys.length > 1
-    ? '<option value="">switch&hellip;</option>' + keys.map(k => `<option${k===st.cur?' selected':''}>${esc(k)}</option>`).join('')
+    ? '<option value="">switch&hellip;</option>' + keys.map(k => `<option${k === st.cur ? ' selected' : ''}>${esc(k)}</option>`).join('')
     : '';
   saved.style.display = keys.length > 1 ? '' : 'none';
 }
 saved.addEventListener('change', () => {
   if (!saved.value) return;
-  const st = store(); picks = st.names[saved.value] || {};
-  who.value = saved.value; st.cur = saved.value;
-  try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e){}
-  lastChamp = winner(5,0); draw();
+  const st = store(); st.cur = saved.value; writeStore(st);
+  who.value = saved.value; picks = loadPicks();
+  lastChamp = winner(FINAL, 0); draw();
 });
 who.addEventListener('change', save);
-(function load(){
-  const st = store();
-  if (st.cur && st.names[st.cur]){ who.value = st.cur; picks = st.names[st.cur]; }
-  lastChamp = winner(5,0);
-  refreshSaved();
-})();
 
 /* ---------- actions ---------- */
 chalk.addEventListener('click', () => {
-  for (let r = 0; r < 6; r++)
-    for (let i = 0; i < (32 >> r); i++){
-      const [a,b] = entrants(r,i); if (!a || !b) continue;
-      picks[r+':'+i] = (a.seed && b.seed ? (a.seed <= b.seed ? a : b) : (a.s >= b.s ? a : b)).r;
+  for (let r = -1; r <= FINAL; r++)
+    for (let i = 0; i < gamesIn(r); i++){
+      const [a, b] = entrants(r, i);
+      if (a && b) picks[r + ':' + i] = (a.r < b.r ? a : b).r;   // lower overall rank = better seed
     }
   save(); draw();
 });
 clear.addEventListener('click', () => { picks = {}; lastChamp = null; save(); draw(); });
 
 copy.addEventListener('click', () => {
-  const nm = (who.value.trim() || 'MY').toUpperCase();
-  const L = [`${nm} ERAS BRACKET`, ''];
-  const c = winner(5,0);
-  L.push(c ? `CHAMPION: ${c.t} (${c.a})` : `CHAMPION: not picked yet`);
-  const f = entrants(5,0);
+  const L = [(currentName() + "'s eras bracket").toUpperCase(),
+             `Field: ${F.label === 'All ' + DATA.count ? DATA.count + ' songs' : F.label + ' songs'}`, ''];
+  const c = winner(FINAL, 0);
+  L.push(c ? `CHAMPION: ${c.t} (${c.a})` : 'CHAMPION: not picked yet');
+  const f = entrants(FINAL, 0);
   if (f[0] && f[1]) L.push(`Final: ${f[0].t} vs ${f[1].t}`);
-  const ff = [winner(3,0),winner(3,1),winner(3,2),winner(3,3)].filter(Boolean);
+  const ff = [0,1,2,3].map(i => winner(R_FINAL, i)).filter(Boolean);
   if (ff.length) L.push('', 'Final Four: ' + ff.map(x => x.t).join(' / '));
-  const e8 = [];
-  for (let i = 0; i < 8; i++){ const w = winner(2,i); if (w) e8.push(w.t); }
-  if (e8.length) L.push('Elite 8: ' + e8.join(' / '));
-  L.push('', `${madeCount()} of 63 matchups picked`);
-  const txt = L.join('\n');
-  navigator.clipboard.writeText(txt).then(() => toastMsg('Results copied, paste them anywhere'),
+  if (R_FINAL >= 1){
+    const e8 = [];
+    for (let i = 0; i < 8; i++){ const w = winner(R_FINAL - 1, i); if (w) e8.push(w.t); }
+    if (e8.length) L.push('Elite 8: ' + e8.join(' / '));
+  }
+  L.push('', `${madeCount()} of ${TOTAL} matchups picked`);
+  navigator.clipboard.writeText(L.join('\n')).then(
+    () => toastMsg('Results copied, paste them anywhere'),
     () => toastMsg('Could not copy, try selecting the page instead'));
 });
-function toastMsg(t){ toast.textContent = t; toast.classList.add('on');
-  clearTimeout(toastMsg.t); toastMsg.t = setTimeout(() => toast.classList.remove('on'), 2400); }
+function toastMsg(t){
+  toast.textContent = t; toast.classList.add('on');
+  clearTimeout(toastMsg.t); toastMsg.t = setTimeout(() => toast.classList.remove('on'), 2400);
+}
+
+/* ---------- start up ---------- */
+(function start(){
+  const st = store();
+  if (st.field && FIELDS.some(f => f.k === st.field)) fieldKey = st.field;
+  if (st.cur) who.value = st.cur;
+  buildField(fieldKey);
+  picks = loadPicks();
+  if (F.main > 64 || matchMedia('(max-width:820px)').matches) regionView = '0';
+  markChips(); refreshSaved();
+  lastChamp = winner(FINAL, 0);
+})();
 
 /* ---------- confetti ---------- */
 const cv = confetti, cx = cv.getContext('2d');
