@@ -1,0 +1,755 @@
+<title>The Eras Bracket</title>
+
+<style>
+/* ============ tokens ============ */
+:root{
+  --bg:#F6F1E8; --bg-2:#EDE5D7;
+  --surface:#FFFDF8; --surface-2:#F0E9DC; --surface-3:#E4D9C6;
+  --ink:#17142A; --ink-2:#514A6B; --ink-3:#8A8199;
+  --rule:#D9CDBA; --rule-2:#C4B49B;
+  --accent:#6B4FA8; --accent-soft:#EDE6FA;
+  --gilt:#A9781E;
+  --shadow:0 1px 2px rgba(35,25,60,.07), 0 8px 24px -12px rgba(35,25,60,.18);
+  --glow:none;
+  --tint-rest:10%; --tint-live:16%; --tint-win:34%;
+
+  --font-display:"Didot","Bodoni 72","Bodoni MT","Playfair Display",Georgia,"Times New Roman",serif;
+  --font-body:"Avenir Next","Avenir",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-label:"Futura","Avenir Next Condensed","Avenir Next",ui-sans-serif,system-ui,sans-serif;
+  --font-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+
+  --gap:12px; --cellw:196px; --stub:16px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B0A18; --bg-2:#100E22;
+    --surface:#171430; --surface-2:#201C3D; --surface-3:#2A2550;
+    --ink:#F3F0FB; --ink-2:#ADA4CC; --ink-3:#7C74A0;
+    --rule:#2E2A50; --rule-2:#413A6B;
+    --accent:#BCA9EC; --accent-soft:#221D42;
+    --gilt:#E7BA55;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+    --glow:0 0 0 1px rgba(188,169,236,.07);
+    --tint-rest:13%; --tint-live:20%; --tint-win:40%;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B0A18; --bg-2:#100E22;
+  --surface:#171430; --surface-2:#201C3D; --surface-3:#2A2550;
+  --ink:#F3F0FB; --ink-2:#ADA4CC; --ink-3:#7C74A0;
+  --rule:#2E2A50; --rule-2:#413A6B;
+  --accent:#BCA9EC; --accent-soft:#221D42;
+  --gilt:#E7BA55;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+  --glow:0 0 0 1px rgba(188,169,236,.07);
+  --tint-rest:13%; --tint-live:20%; --tint-win:40%;
+  color-scheme:dark;
+}
+
+/* ============ base ============ */
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--font-body); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{margin:0; font-weight:400; text-wrap:balance}
+button{font:inherit; color:inherit; background:none; border:0; cursor:pointer}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:2px}
+.wrap{max-width:1180px; margin:0 auto; padding:0 22px}
+.lbl{font-family:var(--font-label); text-transform:uppercase; letter-spacing:.16em; font-size:10.5px; color:var(--ink-3)}
+.num{font-family:var(--font-mono); font-variant-numeric:tabular-nums}
+
+/* ============ era spectrum rail ============ */
+.rail{height:5px; width:100%; display:flex}
+.rail i{flex:1; display:block}
+
+/* ============ masthead ============ */
+header.mast{
+  background:var(--bg-2); border-bottom:1px solid var(--rule);
+  padding:0 0 26px;
+}
+.mast-in{padding-top:30px; display:grid; gap:18px}
+.eyebrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.eyebrow .dot{width:4px;height:4px;border-radius:50%;background:var(--gilt)}
+h1{
+  font-family:var(--font-display);
+  font-size:clamp(42px,8.5vw,92px); line-height:.92; letter-spacing:-.015em;
+}
+h1 em{font-style:italic; color:var(--accent)}
+.deck{max-width:60ch; color:var(--ink-2); font-size:15.5px}
+.facts{display:flex; flex-wrap:wrap; gap:0; border-top:1px solid var(--rule); padding-top:16px}
+.fact{padding-right:34px; margin-right:34px; border-right:1px solid var(--rule)}
+.fact:last-child{border-right:0}
+.fact b{display:block; font-family:var(--font-display); font-size:27px; line-height:1.15; font-weight:400}
+
+/* ============ sticky control bar ============ */
+.bar{
+  position:sticky; top:0; z-index:30; background:var(--surface);
+  border-bottom:1px solid var(--rule); box-shadow:var(--shadow);
+}
+.bar-in{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:9px 0}
+.tabs{display:flex; gap:2px; background:var(--surface-2); padding:3px; border-radius:3px}
+.tab{padding:6px 13px; border-radius:2px; font-family:var(--font-label);
+  text-transform:uppercase; letter-spacing:.1em; font-size:11px; color:var(--ink-2)}
+.tab[aria-selected="true"]{background:var(--surface); color:var(--ink); box-shadow:var(--shadow)}
+.spacer{flex:1}
+.btn{
+  padding:6px 12px; border:1px solid var(--rule-2); border-radius:2px;
+  font-family:var(--font-label); text-transform:uppercase; letter-spacing:.1em;
+  font-size:10.5px; color:var(--ink-2); background:var(--surface); white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent); color:var(--accent)}
+.btn.pri{background:var(--accent); border-color:var(--accent); color:var(--surface)}
+.btn.pri{color:#FFFDF8}
+input[type=text],select{
+  font:inherit; font-size:13.5px; padding:5px 9px; border:1px solid var(--rule-2);
+  border-radius:2px; background:var(--surface); color:var(--ink); min-width:0;
+}
+.who{display:flex; align-items:center; gap:7px}
+.who input{width:132px}
+.prog{display:flex; align-items:center; gap:9px; min-width:150px}
+.meter{flex:1; height:5px; background:var(--surface-3); border-radius:99px; overflow:hidden; min-width:60px}
+.meter i{display:block; height:100%; width:0; background:var(--accent); transition:width .35s ease}
+
+/* ============ view plumbing ============ */
+.view{display:none; width:100%; max-width:1180px; margin:0 auto; padding:26px 22px 70px}
+.view.on{display:block}
+#v-bracket{max-width:1900px}   /* the sheet wants the whole page */
+.sechead{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:14px}
+.sechead h2{font-family:var(--font-display); font-size:26px}
+
+/* ============ bracket ============ */
+.regionbar{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px}
+.rchip{padding:5px 11px; border:1px solid var(--rule); border-radius:2px;
+  font-family:var(--font-label); text-transform:uppercase; letter-spacing:.11em; font-size:10.5px; color:var(--ink-2)}
+.rchip[aria-pressed="true"]{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+.sheetwrap{overflow-x:auto; overflow-y:hidden; padding:6px 2px 18px; scrollbar-width:thin}
+.sheet{display:flex; align-items:center; gap:0; width:max-content; margin:0 auto}
+.half{display:flex; flex-direction:column; gap:44px}
+.node{display:flex; align-items:center; gap:calc(var(--stub)*2)}
+.side-r .node{flex-direction:row-reverse}
+.kids{display:flex; flex-direction:column; justify-content:center; gap:var(--gap); position:relative}
+.side-l .kids::after,.side-r .kids::after{
+  content:""; position:absolute; top:50%; transform:translateY(-50%);
+  height:calc(50% + var(--gap)/2); border-left:1px solid var(--rule-2);
+}
+.side-l .kids::after{right:calc(var(--stub)*-1)}
+.side-r .kids::after{left:calc(var(--stub)*-1)}
+.kids>.node{position:relative}
+.kids>.node::after{
+  content:""; position:absolute; top:50%; width:var(--stub); height:1px; background:var(--rule-2);
+}
+.side-l .kids>.node::after{right:calc(var(--stub)*-1)}
+.side-r .kids>.node::after{left:calc(var(--stub)*-1)}
+.node.has-kids>.cell{position:relative}
+.node.has-kids>.cell::before{
+  content:""; position:absolute; top:50%; width:var(--stub); height:1px; background:var(--rule-2);
+}
+.side-l .node.has-kids>.cell::before{left:calc(var(--stub)*-1)}
+.side-r .node.has-kids>.cell::before{right:calc(var(--stub)*-1)}
+
+.cell{width:var(--cellw); background:var(--surface); border:1px solid var(--rule);
+  border-radius:3px; overflow:hidden; box-shadow:var(--glow)}
+.slot{
+  --era:var(--rule-2);
+  display:flex; align-items:center; gap:7px; width:100%; text-align:left;
+  padding:5px 8px 5px 0; border-left:3px solid var(--era);
+  background:color-mix(in oklab, var(--era) var(--tint-rest), var(--surface));
+  transition:background .18s ease, opacity .18s ease;
+}
+.slot+.slot{border-top:1px solid var(--rule)}
+.slot .sd{font-family:var(--font-mono); font-size:9.5px; color:var(--ink-3); width:20px; text-align:center; flex:none}
+.slot .nm{flex:1; font-size:12.3px; line-height:1.25; letter-spacing:-.005em; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap}
+.slot .st{font-family:var(--font-mono); font-size:9.5px; color:var(--ink-3); flex:none}
+.cell:not(.locked) .slot:hover{background:color-mix(in oklab, var(--era) var(--tint-live), var(--surface))}
+.slot.win{background:color-mix(in oklab, var(--era) var(--tint-win), var(--surface)); font-weight:600}
+.slot.win .nm{font-weight:600}
+.slot.lose{opacity:.4}
+.slot.lose .nm{text-decoration:line-through; text-decoration-thickness:1px}
+.slot.empty{color:var(--ink-3); cursor:default; background:var(--surface-2); border-left-color:var(--rule)}
+.slot.empty .nm{font-family:var(--font-label); text-transform:uppercase; letter-spacing:.12em; font-size:9.5px}
+
+.regtitle{font-family:var(--font-label); text-transform:uppercase; letter-spacing:.2em;
+  font-size:10.5px; color:var(--ink-2); padding:0 0 8px 3px; display:flex; align-items:center; gap:8px}
+.regtitle::after{content:""; flex:1; height:1px; background:var(--rule)}
+
+/* champion medallion */
+.centre{display:flex; flex-direction:column; align-items:center; gap:12px; padding:0 26px; align-self:center}
+.medal{
+  --era:var(--rule-2);
+  width:232px; padding:20px 16px 18px; text-align:center; border-radius:3px;
+  border:1px solid var(--rule-2); background:var(--surface);
+  box-shadow:var(--shadow); position:relative; overflow:hidden;
+}
+.medal.set{border-color:color-mix(in oklab,var(--era) 60%,var(--rule-2));
+  background:color-mix(in oklab, var(--era) var(--tint-win), var(--surface))}
+.medal .crown{font-family:var(--font-label); text-transform:uppercase; letter-spacing:.24em;
+  font-size:9.5px; color:var(--gilt)}
+.medal .ttl{font-family:var(--font-display); font-size:25px; line-height:1.08; margin:9px 0 5px; text-wrap:balance}
+.medal .sub{font-size:11.5px; color:var(--ink-2)}
+.medal.set::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(115deg,transparent 38%,color-mix(in oklab,var(--era) 45%,transparent) 50%,transparent 62%);
+  animation:shine 4.5s ease-in-out infinite;
+}
+@keyframes shine{0%,70%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.finalrail{width:232px; height:3px; display:flex; border-radius:99px; overflow:hidden}
+.finalrail i{flex:1}
+
+/* ============ rankings ============ */
+.filters{display:flex; gap:9px; flex-wrap:wrap; align-items:center; margin-bottom:14px}
+.chips{display:flex; gap:5px; flex-wrap:wrap}
+.echip{--era:var(--rule-2); display:inline-flex; align-items:center; gap:5px;
+  padding:3px 9px 3px 7px; border-radius:2px; font-size:11px;
+  border:1px solid color-mix(in oklab,var(--era) 40%,var(--rule));
+  background:color-mix(in oklab,var(--era) var(--tint-rest),var(--surface)); color:var(--ink-2)}
+.echip::before{content:""; width:7px; height:7px; border-radius:1px; background:var(--era)}
+.echip[aria-pressed="true"]{background:color-mix(in oklab,var(--era) var(--tint-win),var(--surface));
+  color:var(--ink); border-color:var(--era)}
+.tablewrap{border:1px solid var(--rule); border-radius:3px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; min-width:640px}
+th{font-family:var(--font-label); text-transform:uppercase; letter-spacing:.13em; font-size:10px;
+  color:var(--ink-3); text-align:left; padding:9px 12px; border-bottom:1px solid var(--rule);
+  position:sticky; top:var(--barh,47px); background:var(--surface); z-index:5; white-space:nowrap}
+th.s{cursor:pointer}
+th.s:hover{color:var(--accent)}
+td{padding:7px 12px; border-bottom:1px solid color-mix(in oklab,var(--rule) 55%,transparent); font-size:13.5px}
+tbody tr:hover{background:var(--surface-2)}
+td.rk{font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); width:46px; text-align:right}
+td.ti{font-weight:500}
+td.ti .feat{font-size:10px; color:var(--ink-3); font-family:var(--font-label);
+  text-transform:uppercase; letter-spacing:.1em; margin-left:7px}
+td.yr{font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); width:52px}
+td.sc{width:200px}
+.bar2{display:flex; align-items:center; gap:9px}
+.bar2 .tr{flex:1; height:4px; background:var(--surface-3); border-radius:99px; overflow:hidden; min-width:40px}
+.bar2 .tr i{--era:var(--rule-2); display:block; height:100%; background:var(--era)}
+.bar2 .v{font-family:var(--font-mono); font-size:11px; color:var(--ink-2); width:52px; text-align:right}
+.empt{padding:34px; text-align:center; color:var(--ink-3)}
+
+/* ============ albums ============ */
+.albgrid{display:grid; gap:16px; grid-template-columns:repeat(auto-fill,minmax(305px,1fr))}
+.alb{--era:var(--rule-2); border:1px solid var(--rule); border-radius:3px;
+  background:var(--surface); overflow:hidden; display:flex; flex-direction:column}
+.alb .top{padding:13px 15px 12px; border-bottom:1px solid var(--rule);
+  background:color-mix(in oklab,var(--era) var(--tint-live),var(--surface));
+  border-left:4px solid var(--era)}
+.alb .top h3{font-family:var(--font-display); font-size:20px; line-height:1.1}
+.alb .meta{display:flex; gap:12px; margin-top:5px; font-size:11px; color:var(--ink-2)}
+.alb ol{list-style:none; margin:0; padding:5px 0; overflow-y:auto; max-height:290px}
+.alb li{display:flex; align-items:baseline; gap:9px; padding:3.5px 15px; font-size:12.8px}
+.alb li .p{font-family:var(--font-mono); font-size:10px; color:var(--ink-3); width:30px; flex:none; text-align:right}
+.alb li .n{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.alb li .v{font-family:var(--font-mono); font-size:10px; color:var(--ink-3)}
+
+footer{border-top:1px solid var(--rule); padding:22px 0 40px; color:var(--ink-3); font-size:12px}
+footer a{color:var(--ink-2)}
+#confetti{position:fixed; inset:0; pointer-events:none; z-index:90; display:none}
+.toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(16px);
+  background:var(--ink); color:var(--bg); padding:9px 17px; border-radius:3px; font-size:13px;
+  opacity:0; transition:.25s ease; pointer-events:none; z-index:95}
+.toast.on{opacity:1; transform:translateX(-50%) translateY(0)}
+
+@media (max-width:760px){
+  .tablewrap{overflow-x:auto}   /* narrow screens scroll the table instead */
+  th{position:static}
+}
+@media (max-width:560px){
+  :root{--cellw:158px; --stub:11px; --gap:9px}
+  .slot .nm{font-size:11.6px}
+}
+@media (max-width:720px){
+  .wrap{padding:0 15px}
+  .view{padding-left:15px; padding-right:15px}
+  .bar{position:static}          /* wrapped, it would cover a third of a phone screen */
+  .bar-in{gap:9px}
+  .who input{width:104px}
+  .facts{display:grid; grid-template-columns:1fr 1fr; gap:14px 0}
+  .fact{padding-right:16px; margin-right:16px}
+  .fact:nth-child(2n){border-right:0; padding-right:0; margin-right:0}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important; transition-duration:.001ms !important}
+}
+@media print{
+  .bar,.regionbar,footer,.btn,#confetti{display:none !important}
+  body{background:#fff; color:#000}
+  .view{display:none !important}
+  .view.on{display:block !important}
+  .sheetwrap{overflow:visible}
+}
+</style>
+
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast"></div>
+
+<header class="mast">
+  <div class="rail" id="rail-top"></div>
+  <div class="wrap mast-in">
+    <div class="eyebrow">
+      <span class="lbl">Seeded by Spotify play count</span><span class="dot"></span>
+      <span class="lbl" id="stamp"></span>
+    </div>
+    <h1>The Eras <em>Bracket</em></h1>
+    <p class="deck">Every song Taylor Swift has released, ranked one through <span id="n1"></span> by
+      lifetime Spotify streams. The top 64 are seeded into a March&nbsp;Madness field. Pick every
+      matchup, crown a champion, then argue about it.</p>
+    <div class="facts">
+      <div class="fact"><span class="lbl">Songs ranked</span><b class="num" id="f1"></b></div>
+      <div class="fact"><span class="lbl">Total streams</span><b class="num" id="f2"></b></div>
+      <div class="fact"><span class="lbl">Eras</span><b class="num" id="f3"></b></div>
+      <div class="fact"><span class="lbl">Matchups to pick</span><b class="num">63</b></div>
+    </div>
+  </div>
+</header>
+
+<div class="bar">
+  <div class="wrap bar-in">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-view="bracket">Bracket</button>
+      <button class="tab" role="tab" aria-selected="false" data-view="rank">All&nbsp;<span id="n2"></span>&nbsp;songs</button>
+      <button class="tab" role="tab" aria-selected="false" data-view="alb">By era</button>
+    </div>
+    <div class="who">
+      <span class="lbl">Bracket by</span>
+      <input type="text" id="who" placeholder="your name" maxlength="22" autocomplete="off">
+      <select id="saved" aria-label="Saved brackets"></select>
+    </div>
+    <div class="spacer"></div>
+    <div class="prog"><span class="lbl" id="ptxt">0 / 63</span><span class="meter"><i id="pbar"></i></span></div>
+    <button class="btn" id="chalk">Fill by seed</button>
+    <button class="btn" id="clear">Clear</button>
+    <button class="btn pri" id="copy">Copy results</button>
+  </div>
+</div>
+
+<main>
+  <section class="view on" id="v-bracket">
+    <div class="regionbar" id="regionbar"></div>
+    <div class="sheetwrap" id="sheetwrap"><div class="sheet" id="sheet"></div></div>
+  </section>
+
+  <section class="view" id="v-rank">
+    <div class="sechead">
+      <h2>The whole discography, ranked</h2>
+      <span class="lbl" id="rcount"></span>
+    </div>
+    <div class="filters">
+      <input type="text" id="q" placeholder="Search a song&hellip;" style="width:210px">
+      <button class="btn" id="allalb">All eras</button>
+    </div>
+    <div class="chips" id="albchips" style="margin-bottom:14px"></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th class="s" data-sort="r">#</th>
+          <th class="s" data-sort="t">Song</th>
+          <th class="s" data-sort="a">Era</th>
+          <th class="s" data-sort="y">Year</th>
+          <th class="s" data-sort="s">Streams</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="empt" id="nores" style="display:none">No song by that name.</div>
+    </div>
+  </section>
+
+  <section class="view" id="v-alb">
+    <div class="sechead"><h2>Era by era</h2><span class="lbl">Ordered by release</span></div>
+    <div class="albgrid" id="albgrid"></div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <div class="rail" id="rail-bot" style="margin-bottom:16px"></div>
+  <p>Stream totals from <a href="https://kworb.net/spotify/artist/06HL4z0CvFAxyc27GXpf02_songs.html">kworb.net</a>'s
+  Spotify tracking, captured <span id="stamp2"></span>. Re-recordings are counted with their originals, so
+  &ldquo;Love Story&rdquo; and &ldquo;Love Story (Taylor&rsquo;s Version)&rdquo; count as one song. Vault tracks
+  stand on their own. Live cuts, remixes, acoustic alternates and karaoke versions are left out. Your picks save in
+  this browser only, so everyone filling one out needs their own copy of the page.</p>
+</footer>
+
+<script>
+/* the host page may not declare one, and without it phones lay out at 980px */
+if (!document.querySelector('meta[name="viewport"]')){
+  const mv = document.createElement('meta');
+  mv.name = 'viewport'; mv.content = 'width=device-width, initial-scale=1';
+  document.head.appendChild(mv);
+}
+
+const DATA = __DATA__;
+const S = DATA.songs, BR = DATA.bracket;
+const byId = new Map(S.map(s => [s.r, s]));
+
+/* ---------- era order + palette ---------- */
+const ERAS = [];
+S.forEach(s => { if (!ERAS.some(e => e.a === s.a)) ERAS.push({a:s.a, sh:s.sh, c:s.c, y:s.y}); });
+ERAS.sort((x,y) => x.y - y.y);
+const railHTML = ERAS.map(e => `<i style="background:${e.c}" title="${e.a}"></i>`).join('');
+document.getElementById('rail-top').innerHTML = railHTML;
+document.getElementById('rail-bot').innerHTML = railHTML;
+
+const fmt = n => n >= 1e9 ? (n/1e9).toFixed(2)+'B' : n >= 1e6 ? (n/1e6).toFixed(0)+'M' : (n/1e3).toFixed(0)+'K';
+const esc = t => t.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+stamp.textContent = 'Data through ' + DATA.updated;
+stamp2.textContent = DATA.updated;
+n1.textContent = DATA.count; n2.textContent = DATA.count;
+f1.textContent = DATA.count;
+f2.textContent = (DATA.total/1e9).toFixed(1) + 'B';
+f3.textContent = ERAS.length;
+
+/* ---------- bracket model ---------- */
+BR.forEach(reg => reg.games.forEach(g => g.forEach((x,k) => {
+  const s = byId.get(x.r); s.seed = x.seed; g[k] = s;          // one object per song
+})));
+const R0 = [];                                   // 32 opening matchups
+BR.forEach(reg => reg.games.forEach(g => R0.push(g)));
+let picks = {};
+
+function entrants(r, i){
+  if (r === 0) return R0[i];
+  return [winner(r-1, i*2), winner(r-1, i*2+1)];
+}
+function winner(r, i){
+  const id = picks[r+':'+i];
+  if (id == null) return null;
+  const e = entrants(r, i);
+  return (e[0] && e[0].r === id) || (e[1] && e[1].r === id) ? byId.get(id) : null;
+}
+function madeCount(){
+  let n = 0;
+  for (let r = 0; r < 6; r++) for (let i = 0; i < (32 >> r); i++) if (winner(r,i)) n++;
+  return n;
+}
+const ROUND_NAME = ['Round of 64','Round of 32','Sweet 16','Elite 8','Final Four','The Final'];
+
+/* ---------- bracket rendering ---------- */
+function slotEl(song, r, i, live){
+  const b = document.createElement('button');
+  b.className = 'slot';
+  if (!song){
+    b.classList.add('empty'); b.disabled = true;
+    const nm = document.createElement('span'); nm.className = 'nm';
+    nm.textContent = r ? 'Winner, ' + ROUND_NAME[r-1] : '';
+    b.append(Object.assign(document.createElement('span'), {className:'sd'}), nm);
+    return b;
+  }
+  b.style.setProperty('--era', song.c);
+  const w = winner(r,i);
+  if (w) b.classList.add(w.r === song.r ? 'win' : 'lose');
+  b.innerHTML = `<span class="sd">${song.seed || ''}</span>` +
+                `<span class="nm" title="${esc(song.t)} &middot; ${esc(song.a)}">${esc(song.t)}</span>` +
+                `<span class="st">${fmt(song.s)}</span>`;
+  if (live){
+    b.addEventListener('click', () => {
+      picks[r+':'+i] = (w && w.r === song.r) ? undefined : song.r;
+      if (picks[r+':'+i] === undefined) delete picks[r+':'+i];
+      save(); draw();
+    });
+  } else { b.disabled = true; }
+  return b;
+}
+function cellEl(r, i){
+  const c = document.createElement('div');
+  c.className = 'cell';
+  const e = entrants(r, i);
+  const live = !!(e[0] && e[1]);
+  if (!live) c.classList.add('locked');
+  c.appendChild(slotEl(e[0], r, i, live));
+  c.appendChild(slotEl(e[1], r, i, live));
+  return c;
+}
+function nodeEl(r, i, minRound){
+  const n = document.createElement('div');
+  n.className = 'node';
+  if (r > minRound){
+    n.classList.add('has-kids');
+    const k = document.createElement('div'); k.className = 'kids';
+    k.appendChild(nodeEl(r-1, i*2, minRound));
+    k.appendChild(nodeEl(r-1, i*2+1, minRound));
+    n.appendChild(k);
+  }
+  n.appendChild(cellEl(r, i));
+  return n;
+}
+function halfEl(rootIdx, side){
+  const h = document.createElement('div');
+  h.className = 'half side-' + side;
+  [rootIdx*2, rootIdx*2+1].forEach(regionIdx => {
+    const box = document.createElement('div');
+    const t = document.createElement('div');
+    t.className = 'regtitle'; t.textContent = BR[regionIdx].name;
+    if (side === 'r') t.style.flexDirection = 'row-reverse';
+    box.appendChild(t);
+    const tree = document.createElement('div');
+    tree.className = 'side-' + side;
+    tree.appendChild(nodeEl(3, regionIdx, 0));
+    box.appendChild(tree);
+    h.appendChild(box);
+  });
+  return h;
+}
+function centreEl(){
+  const c = document.createElement('div');
+  c.className = 'centre';
+  const sl = document.createElement('div'); sl.className = 'side-l';
+  sl.appendChild(cellEl(4, 0));
+  const sr = document.createElement('div'); sr.className = 'side-l';
+  sr.appendChild(cellEl(4, 1));
+
+  const champ = winner(5, 0);
+  const m = document.createElement('div');
+  m.className = 'medal' + (champ ? ' set' : '');
+  if (champ) m.style.setProperty('--era', champ.c);
+  m.innerHTML = `<div class="crown">Champion</div>
+    <div class="ttl">${champ ? esc(champ.t) : 'Nobody yet'}</div>
+    <div class="sub">${champ ? esc(champ.a) + ' &middot; ' + champ.y + ' &middot; #' + champ.r + ' overall &middot; ' + champ.s.toLocaleString() + ' streams' : 'Pick all 63 matchups'}</div>`;
+
+  const fr = document.createElement('div'); fr.className = 'finalrail'; fr.innerHTML = railHTML;
+
+  const lbl = document.createElement('div'); lbl.className = 'lbl'; lbl.textContent = 'Final Four';
+  c.append(lbl, sl, cellEl(5, 0), sr, fr, m);
+  return c;
+}
+
+let regionView = 'all';
+function drawSheet(){
+  sheet.innerHTML = '';
+  sheet.style.zoom = '';
+  if (regionView === 'all'){
+    sheet.appendChild(halfEl(0, 'l'));
+    sheet.appendChild(centreEl());
+    sheet.appendChild(halfEl(1, 'r'));
+  } else if (regionView === 'final'){
+    sheet.appendChild(centreEl());
+  } else {
+    const idx = +regionView;
+    const box = document.createElement('div');
+    const t = document.createElement('div'); t.className = 'regtitle'; t.textContent = BR[idx].name;
+    const tree = document.createElement('div'); tree.className = 'side-l';
+    tree.appendChild(nodeEl(3, idx, 0));
+    box.append(t, tree);
+    sheet.appendChild(box);
+  }
+  fit();
+}
+const MIN_ZOOM = 0.7;                         // below this the song titles stop being readable
+function fit(){
+  const avail = sheetwrap.clientWidth - 4;
+  if (avail < 60) return;                     // not laid out yet (hidden tab, print, first paint)
+  sheet.style.zoom = 1;                       // reset, then read the natural width
+  const natural = sheet.offsetWidth;
+  let k = natural > avail ? Math.max(avail / natural, MIN_ZOOM) : 1;
+  sheet.style.zoom = k;
+  // browsers disagree on whether zoom is baked into measurements, so correct against what actually rendered
+  const shown = sheet.getBoundingClientRect().width;
+  if (shown > avail && k > MIN_ZOOM) sheet.style.zoom = Math.max(k * avail / shown, MIN_ZOOM);
+}
+addEventListener('resize', fit);
+if (window.ResizeObserver) new ResizeObserver(() => fit()).observe(sheetwrap);
+// the display face changes the sheet's natural width, and a page that first paints
+// hidden reports no width at all, so re-fit when either of those settles
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit).catch(() => {});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) fit(); });
+
+function drawProgress(){
+  const n = madeCount();
+  ptxt.textContent = n + ' / 63';
+  pbar.style.width = (n/63*100) + '%';
+}
+let lastChamp = null;
+function draw(){
+  drawSheet(); drawProgress();
+  const c = winner(5,0);
+  if (c && (!lastChamp || lastChamp.r !== c.r)) burst(c.c);
+  lastChamp = c;
+}
+
+/* ---------- region chooser ---------- */
+const regionOpts = [{k:'all', n:'Full bracket'}]
+  .concat(BR.map((b,i) => ({k:String(i), n:b.name})))
+  .concat([{k:'final', n:'Final Four'}]);
+regionbar.innerHTML = regionOpts.map(o =>
+  `<button class="rchip" data-r="${o.k}" aria-pressed="${o.k==='all'}">${o.n}</button>`).join('');
+regionbar.addEventListener('click', e => {
+  const b = e.target.closest('.rchip'); if (!b) return;
+  regionView = b.dataset.r;
+  [...regionbar.children].forEach(c => c.setAttribute('aria-pressed', c === b));
+  drawSheet();
+});
+if (matchMedia('(max-width:820px)').matches){
+  regionView = '0';
+  [...regionbar.children].forEach(c => c.setAttribute('aria-pressed', c.dataset.r === '0'));
+}
+
+/* ---------- saving ---------- */
+const KEY = 'erasBracket.v1';
+function store(){ try { return JSON.parse(localStorage.getItem(KEY)) || {names:{}, cur:''}; }
+  catch(e){ return {names:{}, cur:''}; } }
+function save(){
+  const st = store();
+  const nm = (who.value.trim() || 'my bracket');
+  st.names[nm] = picks; st.cur = nm;
+  try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e){}
+  refreshSaved();
+}
+function refreshSaved(){
+  const st = store(), keys = Object.keys(st.names);
+  saved.innerHTML = keys.length > 1
+    ? '<option value="">switch&hellip;</option>' + keys.map(k => `<option${k===st.cur?' selected':''}>${esc(k)}</option>`).join('')
+    : '';
+  saved.style.display = keys.length > 1 ? '' : 'none';
+}
+saved.addEventListener('change', () => {
+  if (!saved.value) return;
+  const st = store(); picks = st.names[saved.value] || {};
+  who.value = saved.value; st.cur = saved.value;
+  try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e){}
+  lastChamp = winner(5,0); draw();
+});
+who.addEventListener('change', save);
+(function load(){
+  const st = store();
+  if (st.cur && st.names[st.cur]){ who.value = st.cur; picks = st.names[st.cur]; }
+  lastChamp = winner(5,0);
+  refreshSaved();
+})();
+
+/* ---------- actions ---------- */
+chalk.addEventListener('click', () => {
+  for (let r = 0; r < 6; r++)
+    for (let i = 0; i < (32 >> r); i++){
+      const [a,b] = entrants(r,i); if (!a || !b) continue;
+      picks[r+':'+i] = (a.seed && b.seed ? (a.seed <= b.seed ? a : b) : (a.s >= b.s ? a : b)).r;
+    }
+  save(); draw();
+});
+clear.addEventListener('click', () => { picks = {}; lastChamp = null; save(); draw(); });
+
+copy.addEventListener('click', () => {
+  const nm = (who.value.trim() || 'MY').toUpperCase();
+  const L = [`${nm} ERAS BRACKET`, ''];
+  const c = winner(5,0);
+  L.push(c ? `CHAMPION: ${c.t} (${c.a})` : `CHAMPION: not picked yet`);
+  const f = entrants(5,0);
+  if (f[0] && f[1]) L.push(`Final: ${f[0].t} vs ${f[1].t}`);
+  const ff = [winner(3,0),winner(3,1),winner(3,2),winner(3,3)].filter(Boolean);
+  if (ff.length) L.push('', 'Final Four: ' + ff.map(x => x.t).join(' / '));
+  const e8 = [];
+  for (let i = 0; i < 8; i++){ const w = winner(2,i); if (w) e8.push(w.t); }
+  if (e8.length) L.push('Elite 8: ' + e8.join(' / '));
+  L.push('', `${madeCount()} of 63 matchups picked`);
+  const txt = L.join('\n');
+  navigator.clipboard.writeText(txt).then(() => toastMsg('Results copied, paste them anywhere'),
+    () => toastMsg('Could not copy, try selecting the page instead'));
+});
+function toastMsg(t){ toast.textContent = t; toast.classList.add('on');
+  clearTimeout(toastMsg.t); toastMsg.t = setTimeout(() => toast.classList.remove('on'), 2400); }
+
+/* ---------- confetti ---------- */
+const cv = confetti, cx = cv.getContext('2d');
+function burst(era){
+  if (matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  cv.style.display = 'block';
+  cv.width = innerWidth; cv.height = innerHeight;
+  const cols = ERAS.map(e => e.c).concat([era, era, era, '#E7BA55']);
+  const P = Array.from({length: 150}, () => ({
+    x: innerWidth/2 + (Math.random()-.5)*260, y: innerHeight*0.42,
+    vx: (Math.random()-.5)*13, vy: -7 - Math.random()*11,
+    w: 4 + Math.random()*6, h: 3 + Math.random()*7,
+    a: Math.random()*6.3, va: (Math.random()-.5)*.3,
+    c: cols[(Math.random()*cols.length)|0], life: 0
+  }));
+  let raf;
+  (function step(){
+    cx.clearRect(0,0,cv.width,cv.height);
+    let alive = 0;
+    P.forEach(p => {
+      p.life++; p.vy += .34; p.x += p.vx; p.y += p.vy; p.a += p.va; p.vx *= .995;
+      if (p.y < cv.height + 40){ alive++;
+        cx.save(); cx.translate(p.x,p.y); cx.rotate(p.a);
+        cx.globalAlpha = Math.max(0, 1 - p.life/140);
+        cx.fillStyle = p.c; cx.fillRect(-p.w/2,-p.h/2,p.w,p.h); cx.restore();
+      }
+    });
+    if (alive) raf = requestAnimationFrame(step);
+    else { cancelAnimationFrame(raf); cv.style.display = 'none'; cx.clearRect(0,0,cv.width,cv.height); }
+  })();
+}
+
+/* ---------- rankings ---------- */
+let sortKey = 'r', sortDir = 1, albFilter = new Set(), query = '';
+albchips.innerHTML = ERAS.map(e =>
+  `<button class="echip" data-a="${esc(e.a)}" style="--era:${e.c}" aria-pressed="false">${esc(e.a)}</button>`).join('');
+albchips.addEventListener('click', e => {
+  const b = e.target.closest('.echip'); if (!b) return;
+  const a = b.dataset.a;
+  albFilter.has(a) ? albFilter.delete(a) : albFilter.add(a);
+  b.setAttribute('aria-pressed', albFilter.has(a));
+  drawRows();
+});
+allalb.addEventListener('click', () => {
+  albFilter.clear();
+  [...albchips.children].forEach(c => c.setAttribute('aria-pressed','false'));
+  drawRows();
+});
+q.addEventListener('input', () => { query = q.value.toLowerCase().trim(); drawRows(); });
+document.querySelectorAll('th.s').forEach(th => th.addEventListener('click', () => {
+  const k = th.dataset.sort;
+  sortDir = (k === sortKey) ? -sortDir : (k === 't' || k === 'a' ? 1 : (k === 's' ? -1 : 1));
+  sortKey = k; drawRows();
+}));
+const MAXS = S[0].s;
+function drawRows(){
+  let list = S.filter(s =>
+    (!albFilter.size || albFilter.has(s.a)) &&
+    (!query || s.t.toLowerCase().includes(query) || s.a.toLowerCase().includes(query)));
+  list = list.slice().sort((a,b) => {
+    const va = a[sortKey], vb = b[sortKey];
+    return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * sortDir;
+  });
+  rcount.textContent = list.length + (list.length === 1 ? ' song' : ' songs');
+  nores.style.display = list.length ? 'none' : 'block';
+  rows.innerHTML = list.map(s => `<tr>
+    <td class="rk">${s.r}</td>
+    <td class="ti">${esc(s.t)}${s.f ? '<span class="feat">feature</span>' : ''}</td>
+    <td><span class="echip" style="--era:${s.c}">${esc(s.a)}</span></td>
+    <td class="yr">${s.y}</td>
+    <td class="sc"><span class="bar2"><span class="tr"><i style="--era:${s.c};width:${Math.max(2,s.s/MAXS*100)}%"></i></span>
+      <span class="v">${fmt(s.s)}</span></span></td></tr>`).join('');
+}
+
+/* ---------- era view ---------- */
+albgrid.innerHTML = ERAS.map(e => {
+  const t = S.filter(s => s.a === e.a).sort((a,b) => b.s - a.s);
+  const tot = t.reduce((n,s) => n + s.s, 0);
+  return `<div class="alb" style="--era:${e.c}">
+    <div class="top"><h3>${esc(e.a)}</h3>
+      <div class="meta"><span>${e.y}</span><span>${t.length} songs</span><span>${fmt(tot)} streams</span></div></div>
+    <ol>${t.map((s,i) => `<li><span class="p">${i+1}</span><span class="n" title="${esc(s.t)}">${esc(s.t)}</span>
+      <span class="v">${fmt(s.s)}</span></li>`).join('')}</ol></div>`;
+}).join('');
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  document.getElementById('v-' + t.dataset.view).classList.add('on');
+  if (t.dataset.view === 'bracket') fit();
+}));
+
+function syncBarHeight(){
+  const h = document.querySelector('.bar').offsetHeight;
+  if (h) document.documentElement.style.setProperty('--barh', h + 'px');
+}
+addEventListener('resize', syncBarHeight);
+syncBarHeight();
+
+drawRows();
+draw();
+</script>
